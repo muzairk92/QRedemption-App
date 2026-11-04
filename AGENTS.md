@@ -166,10 +166,17 @@ the debug key for local installs only (commented in `app/build.gradle.kts`).
 
 **Gradle wrapper:**
 
-- Only `gradle/wrapper/gradle-wrapper.properties` exists.
-- `gradlew`, `gradlew.bat` and `gradle-wrapper.jar` are **not** written by hand. Generate
-  them from the Gradle distribution once Android Studio has downloaded it (command in
-  `README.md`).
+- `gradlew`, `gradlew.bat` and `gradle/wrapper/gradle-wrapper.jar` were generated on
+  2026-11-03 by Gradle 9.8.2's own `wrapper` task (never hand-written), keeping the
+  SHA-256 line. Regenerate the same way if they need replacing (command in `README.md`).
+- **Android Studio vs AGP 9.5.** Google's compatibility table
+  (`developer.android.com/build/releases/about-agp`) says AGP 9.5 needs **Android Studio
+  Rabbit 2 (2026.2.2)** or newer. Older Studios (for example Otter 2025.2.1, which supports
+  AGP 4.0–8.13) cannot sync the project. Command-line `gradlew` builds don't depend on the
+  IDE version and work with any JDK 17+.
+- **Windows.** Run `.\gradlew.bat` with `JAVA_HOME` set to Android Studio's `jbr` folder.
+  `local.properties` must escape the path (`sdk.dir=C\:\\Users\\...\\Sdk`), or lint
+  reports a `PropertyEscape` error.
 
 ## 6. Conventions
 
@@ -214,30 +221,107 @@ the debug key for local installs only (commented in `app/build.gradle.kts`).
   - brackets balance in all 60 Kotlin files;
   - every project import resolves.
 
+### Done and verified (2026-11-03, Windows 11 laptop)
+
+- Environment: Windows 11 Home 10.0.26300; Android Studio Otter 2025.2.1
+  (build AI-252.25557.131.2521); bundled JBR OpenJDK 21.0.8 at
+  `C:\Program Files\Android\Android Studio\jbr`; SDK at
+  `C:\Users\muzai\AppData\Local\Android\Sdk` (AGP auto-installed Platform 37 and
+  Build-Tools 36.0.0).
+- Generated the Gradle wrapper (see section 5).
+- **First compile:** the code compiled with no errors.
+- `.\gradlew.bat testDebugUnitTest lintDebug assembleDebug` → **BUILD SUCCESSFUL**:
+  - unit tests: **81 run, 0 failed** (12 classes);
+  - lint: **0 errors, 10 warnings** (listed below);
+  - debug APK: 19,041,637 bytes (not shrunk).
+- Fixes made to reach green:
+  - `TicketViewModelTest`: 5 tests failed because the repository's scope was the test's
+    `backgroundScope`, and `advanceUntilIdle()` never runs work queued only there, so no
+    request was ever sent. The scope is now the test scope. No assertion was changed.
+  - `MainDispatcherRule`: added `@OptIn(ExperimentalCoroutinesApi::class)` (3 compiler
+    warnings).
+- Lint warnings left on purpose:
+  - `OldTargetApi` (targetSdk 36 is deliberate, see section 5);
+  - `InsecureBaseConfiguration` (debug-only cleartext);
+  - `NewerVersionAvailable` ×2 (OkHttp 5.5.1 exists; 4.12.0 was chosen deliberately);
+  - `DataExtractionRules` (`allowBackup="false"` already covers API 26–30);
+  - `TypographyDashes` (the Caller ID example really uses a hyphen);
+  - `PluralsCandidate` ×4: three are real (`retry_after_seconds`, `tablet_id_too_long`,
+    `result_checks_summary`); `status_mismatch` is a false positive. Not fixed yet.
+
+- **On the owner's phone** (Samsung Galaxy S10, SM-G973F, Android 12 / API 31):
+  - `.\gradlew.bat installDebug` → installed;
+  - cold start 1.4 s, no crash; it opens on *Set up Caller* with the live camera;
+  - `.\gradlew.bat connectedDebugAndroidTest` → **2 run, 0 failed**
+    (`RedemptionResultTest`). The run uninstalls the app; it was reinstalled afterwards.
+  - Compiler warning in `RedemptionResultTest`: `createComposeRule()` is deprecated in
+    favour of `androidx.compose.ui.test.junit4.v2.createComposeRule` (queued instead of
+    immediate dispatch). Not migrated yet.
+
+### Code review fixes (2026-11-03, verified by unit tests)
+
+Six bugs found in review were fixed, each with tests:
+
+1. **Reopening a follow-up test from History.** `TestScenario.isProbe` marks the
+   scenarios that send something other than the request under test.
+   `HistoryRepository.requestUnderTest()` finds the request a probe tested, and the
+   Ticket screen works on that request. If it was trimmed from the history, a new
+   request starts. An unanswered probe gets a *Resend* button that sends it again
+   unchanged (`TicketViewModel.onResendProbe`).
+2. **TLS errors.** Only `SSLHandshakeException` and `SSLPeerUnverifiedException` count as
+   "not sent". Any other `SSLException` is `NETWORK_ERROR` (outcome unknown).
+3. **Proxy error pages.** `UnexpectedResponse.outcomeUnknown` (429 or 5xx) is the single
+   rule used by both `needsRetryWithSameRequest` and `ScenarioEvaluator`.
+4. **Process death.** `TicketViewModel` keeps the request ID, sent flag, tablet ID,
+   origin and the shown or in-flight attempt ID in `SavedStateHandle`
+   (`lifecycle-viewmodel-savedstate`, now a direct dependency). `PortalRepository.redeem`
+   takes the attempt ID from the caller, so an in-flight attempt can be found again.
+5. **Caller or server changed.** `RequestOrigin` (Caller ID plus server) is recorded when
+   a request is first sent. `PortalRepository.redeem(origin = …)` returns
+   `RedeemResult.OriginChanged`, and sends and saves nothing, when the current Caller or
+   server differs. The Ticket screen shows a warning and disables follow-up tests.
+6. **Keystore errors.** `JsonDataStoreSerializer` turns encryption failures while saving
+   into `IOException`. While reading, `KeyStoreException` and `ProviderException`
+   (Keystore unavailable) become `IOException` instead of corruption, so the vault is not
+   wiped.
+
+After the fixes: `.\gradlew.bat testDebugUnitTest lintDebug assembleDebug` →
+**BUILD SUCCESSFUL**, **93 unit tests, 0 failed** (13 classes, 12 new tests). Lint has
+0 errors and the same 10 warnings. The debug APK is 19,059,865 bytes. The new tests were
+written alongside the fixes; they were not first run against the old code.
+
+On the phone after the fixes: `.\gradlew.bat connectedDebugAndroidTest` → **2 run,
+0 failed**. The fixed build is reinstalled and cold-starts in 1.4 s with no crash. One
+earlier run failed both tests with "No compose hierarchies found" because the phone was
+asleep on the lock screen. Device tests need the phone unlocked with the screen on
+(Developer options → *Stay awake* keeps it on while charging).
+
 ### Not done or not verified
 
-- **The code has never been compiled, linted or tested.** Android Studio, Java and the
-  Android SDK were not installed on the owner's Mac. The owner chose to install Android
-  Studio themselves.
-- The Gradle wrapper scripts and JAR are not generated yet.
-- Never run on the owner's phone or against staging from the app.
+- The new Ticket-screen banners (Resend, Caller or server changed) have not been checked
+  by eye on the phone.
+- Never run against staging from the app: no Caller set up and no redemption sent yet.
+- Android Studio on this laptop (Otter) cannot sync AGP 9.5; see section 5.
+
+### Remaining minor review items (not fixed)
+
+- The full ticket QR travels in `TicketRoute`, which is kept in plain text in the saved
+  instance state.
+- The request `Content-Type` is `application/json; charset=utf-8` (OkHttp adds the
+  charset). Confirm that the Portal's `CallerRedemptionBoundary` accepts it.
+- ML Kit keeps analysing frames while scanning is paused.
+- Screens that collect DataStore flows (`ScanViewModel`, `SettingsViewModel`,
+  `CallerSetupViewModel`) don't catch `IOException` from a failed read.
 
 ### Next steps, in order
 
-1. Once Android Studio is installed:
-   - open the project;
-   - generate the wrapper (`README.md`);
-   - set `JAVA_HOME` to Android Studio's bundled JBR
-     (`/Applications/Android Studio.app/Contents/jbr/Contents/Home`) when using the
-     command line.
-2. Run `./gradlew testDebugUnitTest lintDebug assembleDebug`. Fix every compile error,
-   test failure and lint error properly; don't weaken tests or rules to make them pass.
-3. Install on the owner's phone (`./gradlew installDebug`, with USB debugging on):
+1. On the phone:
    - set up the Caller from its OEM label;
    - run the four core tests against staging with a **new** paid Digital or Hybrid
-     order (each first redemption uses up a ticket).
-4. Run `./gradlew connectedDebugAndroidTest` on the phone.
-5. Optional, only if the owner asks:
+     order (each first redemption uses up a ticket; order 183's ticket is already used);
+   - check the new Ticket-screen banners by eye.
+2. Update Android Studio to Rabbit 2 (2026.2.2) or newer to work on the project in the IDE.
+3. Optional, only if the owner asks:
    - the remaining Postman-equivalent scenarios (another Caller, electronic limit,
      wrong Hall, voided ticket);
    - measure the release APK size with `assembleRelease`.

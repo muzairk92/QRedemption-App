@@ -183,12 +183,36 @@ private fun ColumnScope.TicketBody(
             },
         )
     }
+    val origin = state.requestOrigin
+    if (state.originChanged && origin != null) {
+        StatusBanner(
+            tone = StatusTone.WARNING,
+            icon = R.drawable.ic_dns,
+            title = stringResource(R.string.ticket_origin_changed_title),
+            body = stringResource(
+                R.string.ticket_origin_changed_body,
+                DisplayFormats.host(origin.serverBaseUrl),
+                origin.callerId,
+            ),
+        )
+    }
     if (state.restoredUnconfirmed) {
         StatusBanner(
             tone = StatusTone.WARNING,
             icon = R.drawable.ic_schedule,
             title = stringResource(R.string.ticket_unconfirmed_title),
             body = stringResource(R.string.ticket_unconfirmed_body),
+            action = if (state.unconfirmedProbe != null) {
+                {
+                    TextButton(
+                        onClick = viewModel::onResendProbe,
+                        enabled = state.canResendProbe,
+                        modifier = Modifier.testTag(TEST_TAG_RESEND_PROBE),
+                    ) { Text(stringResource(R.string.action_resend)) }
+                }
+            } else {
+                null
+            },
         )
     }
 
@@ -395,9 +419,11 @@ private fun OtherTabletDialog(
 private fun Problem.textRes(): Int = when (this) {
     Problem.NO_CALLER -> R.string.problem_no_caller
     Problem.NO_SERVER -> R.string.problem_no_server
+    Problem.ORIGIN_CHANGED -> R.string.problem_origin_changed
     Problem.STORAGE_FAILED -> R.string.error_storage
 }
 
 internal const val TEST_TAG_REDEEM = "redeem"
+internal const val TEST_TAG_RESEND_PROBE = "resend_probe"
 internal const val TEST_TAG_RETRY = "retry_same_request"
 internal const val TEST_TAG_TABLET_ID = "tablet_id"

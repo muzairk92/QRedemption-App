@@ -1,5 +1,6 @@
 package com.bingoinnovation.redemptiontester.ui.ticket
 
+import androidx.lifecycle.SavedStateHandle
 import com.bingoinnovation.redemptiontester.data.PortalRepository
 import com.bingoinnovation.redemptiontester.data.storage.AppSettings
 import com.bingoinnovation.redemptiontester.data.storage.CallerRepository
@@ -7,10 +8,15 @@ import com.bingoinnovation.redemptiontester.data.storage.HistoryRepository
 import com.bingoinnovation.redemptiontester.data.storage.SettingsRepository
 import com.bingoinnovation.redemptiontester.data.storage.Vault
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionAttempt
+import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionOutcome
 import com.bingoinnovation.redemptiontester.domain.redemption.RequestIdGenerator
+import com.bingoinnovation.redemptiontester.domain.redemption.RequestOrigin
 import com.bingoinnovation.redemptiontester.domain.redemption.TabletIdRules
 import com.bingoinnovation.redemptiontester.domain.redemption.TestScenario
+import com.bingoinnovation.redemptiontester.domain.redemption.TransportFailureKind
 import com.bingoinnovation.redemptiontester.domain.redemption.Verdict
+import com.bingoinnovation.redemptiontester.domain.server.ServerPreset
+import com.bingoinnovation.redemptiontester.domain.server.ServerSettings
 import com.bingoinnovation.redemptiontester.testing.FakePortalGateway
 import com.bingoinnovation.redemptiontester.testing.InMemoryDataStore
 import com.bingoinnovation.redemptiontester.testing.MainDispatcherRule
@@ -44,18 +50,32 @@ class TicketViewModelTest {
     )
     private var now = 1_000L
 
-    private fun TestScope.viewModel(attemptId: String? = null): TicketViewModel {
+    /**
+     * @param savedState what the system kept for the screen; pass a [snapshot] of an earlier
+     *   one to simulate the app being stopped and restored.
+     * @param store the phone's stored vault; pass a copy to simulate what was on disk.
+     */
+    private fun TestScope.viewModel(
+        attemptId: String? = null,
+        savedState: SavedStateHandle = SavedStateHandle(),
+        store: InMemoryDataStore<Vault> = vault,
+    ): TicketViewModel {
+        val history = HistoryRepository(store)
+        val callers = CallerRepository(store)
         val portal = PortalRepository(
             gateway = gateway,
             callers = callers,
             settings = settings,
             history = history,
-            externalScope = backgroundScope,
+            // The test scope itself, not backgroundScope: advanceUntilIdle() never runs
+            // work queued only in backgroundScope, so requests would never be sent.
+            externalScope = this,
             clock = { now++ },
         )
         val viewModel = TicketViewModel(
             ticketQr = TestData.TICKET_TEXT,
             attemptId = attemptId,
+            savedState = savedState,
             portal = portal,
             history = history,
             callers = callers,
@@ -225,6 +245,176 @@ class TicketViewModelTest {
 
         assertThat(viewModel.uiState.value.canRedeem).isFalse()
     }
+
+    @Test
+    fun reopeningAnotherTabletTest_retriesTheRequestItProbed() = runTest {
+        gateway.enqueue(
+            TestData.success(),
+            TestData.rejected("request_id_conflict", 409),
+            TestData.success(recovered = true),
+        )
+        val first = viewModel()
+        advanceUntilIdle()
+        first.onRedeem()
+        advanceUntilIdle()
+        first.onOtherTablet(TestData.OTHER_TABLET_ID)
+        advanceUntilIdle()
+        val probe = history.attempts.first().first { it.scenario == TestScenario.OTHER_TABLET_SAME_REQUEST }
+
+        val reopened = viewModel(attemptId = probe.id)
+        advanceUntilIdle()
+        assertThat(reopened.uiState.value.lastAttempt?.id).isEqualTo(probe.id)
+        assertThat(reopened.uiState.value.tabletIdInput).isEqualTo(TestData.TABLET_ID)
+        reopened.onRetrySameRequest()
+        advanceUntilIdle()
+
+        val (_, retry) = gateway.redeemRequests.last()
+        assertThat(retry.requestId to retry.tabletId).isEqualTo(TestData.REQUEST_ID to TestData.TABLET_ID)
+        assertThat(reopened.uiState.value.lastAttempt?.verdict).isEqualTo(Verdict.AS_EXPECTED)
+    }
+
+    @Test
+    fun reopeningANewRequestTest_retriesTheOriginalRequest() = runTest {
+        gateway.enqueue(
+            TestData.success(),
+            TestData.rejected("already_redeemed", 409),
+            TestData.success(recovered = true),
+        )
+        val first = viewModel()
+        advanceUntilIdle()
+        first.onRedeem()
+        advanceUntilIdle()
+        first.onNewRequestSameTicket()
+        advanceUntilIdle()
+        val probe = history.attempts.first().first { it.scenario == TestScenario.NEW_REQUEST_SAME_TICKET }
+
+        val reopened = viewModel(attemptId = probe.id)
+        advanceUntilIdle()
+        assertThat(reopened.uiState.value.requestId).isEqualTo(TestData.REQUEST_ID)
+        reopened.onRetrySameRequest()
+        advanceUntilIdle()
+
+        assertThat(gateway.redeemRequests.last().second.requestId).isEqualTo(TestData.REQUEST_ID)
+        assertThat(reopened.uiState.value.lastAttempt?.verdict).isEqualTo(Verdict.AS_EXPECTED)
+    }
+
+    @Test
+    fun reopeningAnUnansweredTest_resendsItUnchanged() = runTest {
+        gateway.enqueue(
+            TestData.success(),
+            RedemptionOutcome.TransportFailure(TransportFailureKind.TIMEOUT),
+        )
+        val first = viewModel()
+        advanceUntilIdle()
+        first.onRedeem()
+        advanceUntilIdle()
+        first.onOtherTablet(TestData.OTHER_TABLET_ID)
+        advanceUntilIdle()
+        // The probe's answer never arrived: on disk it is still waiting for one.
+        val probe = history.attempts.first().first { it.scenario == TestScenario.OTHER_TABLET_SAME_REQUEST }
+        history.save(probe.copy(outcome = null, verdict = null, finishedAtMillis = null))
+        gateway.enqueue(TestData.rejected("request_id_conflict", 409))
+
+        val reopened = viewModel(attemptId = probe.id)
+        advanceUntilIdle()
+        assertThat(reopened.uiState.value.restoredUnconfirmed).isTrue()
+        assertThat(reopened.uiState.value.canResendProbe).isTrue()
+        reopened.onResendProbe()
+        advanceUntilIdle()
+
+        val (_, resent) = gateway.redeemRequests.last()
+        assertThat(resent.requestId to resent.tabletId).isEqualTo(TestData.REQUEST_ID to TestData.OTHER_TABLET_ID)
+        val state = reopened.uiState.value
+        assertThat(state.lastAttempt?.scenario).isEqualTo(TestScenario.OTHER_TABLET_SAME_REQUEST)
+        assertThat(state.lastAttempt?.verdict).isEqualTo(Verdict.AS_EXPECTED)
+        assertThat(state.restoredUnconfirmed).isFalse()
+        assertThat(state.unconfirmedProbe).isNull()
+    }
+
+    @Test
+    fun appStoppedAfterATimeout_keepsTheSameRequest() = runTest {
+        gateway.enqueue(
+            RedemptionOutcome.TransportFailure(TransportFailureKind.TIMEOUT),
+            TestData.success(recovered = true),
+        )
+        val savedState = SavedStateHandle()
+        val first = viewModel(savedState = savedState)
+        advanceUntilIdle()
+        first.onRedeem()
+        advanceUntilIdle()
+
+        val restored = viewModel(savedState = savedState.snapshot())
+        advanceUntilIdle()
+        val state = restored.uiState.value
+        assertThat(state.requestId).isEqualTo(TestData.REQUEST_ID)
+        assertThat(state.requestSent).isTrue()
+        assertThat(state.canRedeem).isFalse()
+        assertThat(state.lastAttempt?.verdict).isEqualTo(Verdict.NOT_CONFIRMED)
+
+        restored.onRetrySameRequest()
+        advanceUntilIdle()
+        assertThat(gateway.redeemRequests.map { it.second.requestId })
+            .containsExactly(TestData.REQUEST_ID, TestData.REQUEST_ID)
+    }
+
+    @Test
+    fun appStoppedWhileSending_offersARetryOfTheSameRequest() = runTest {
+        var savedWhileSending: SavedStateHandle? = null
+        var vaultWhileSending: Vault? = null
+        val savedState = SavedStateHandle()
+        gateway.onRedeem = {
+            savedWhileSending = savedState.snapshot()
+            vaultWhileSending = vault.data.first()
+        }
+        gateway.enqueue(TestData.success())
+        val first = viewModel(savedState = savedState)
+        advanceUntilIdle()
+        first.onRedeem()
+        advanceUntilIdle()
+
+        // Restore exactly what existed while the request was in flight.
+        val restored = viewModel(
+            savedState = checkNotNull(savedWhileSending),
+            store = InMemoryDataStore(checkNotNull(vaultWhileSending)),
+        )
+        advanceUntilIdle()
+
+        val state = restored.uiState.value
+        assertThat(state.requestId).isEqualTo(TestData.REQUEST_ID)
+        assertThat(state.requestSent).isTrue()
+        assertThat(state.restoredUnconfirmed).isTrue()
+        assertThat(state.unconfirmedProbe).isNull()
+        assertThat(state.canRunFollowUpTests).isTrue()
+        assertThat(state.requestOrigin)
+            .isEqualTo(RequestOrigin(TestData.CALLER_ID, "https://staging.bingoinnovation.com"))
+    }
+
+    @Test
+    fun changedServer_blocksFollowUpTestsOfTheRequest() = runTest {
+        gateway.enqueue(TestData.success())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onRedeem()
+        advanceUntilIdle()
+
+        settings.setServer(ServerSettings(preset = ServerPreset.CUSTOM, customBaseUrl = "https://other.example"))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.originChanged).isTrue()
+        assertThat(viewModel.uiState.value.canRunFollowUpTests).isFalse()
+
+        viewModel.onRetrySameRequest()
+        advanceUntilIdle()
+        assertThat(gateway.redeemRequests).hasSize(1)
+        assertThat(viewModel.uiState.value.problem).isEqualTo(TicketViewModel.Problem.ORIGIN_CHANGED)
+
+        // Starting over makes a new request for the new server.
+        viewModel.onNewRequestId()
+        assertThat(viewModel.uiState.value.originChanged).isFalse()
+        assertThat(viewModel.uiState.value.canRedeem).isTrue()
+    }
+
+    /** What the system restores after stopping the app: a copy of the saved values. */
+    private fun SavedStateHandle.snapshot() = SavedStateHandle(keys().associateWith { get<Any?>(it) })
 
     private class SequentialRequestIds(vararg ids: String) : RequestIdGenerator {
         private val queue = ArrayDeque(ids.toList())

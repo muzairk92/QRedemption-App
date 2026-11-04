@@ -7,6 +7,7 @@ import com.bingoinnovation.redemptiontester.data.storage.SettingsRepository
 import com.bingoinnovation.redemptiontester.data.storage.Vault
 import com.bingoinnovation.redemptiontester.domain.redemption.ContractRule
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionOutcome
+import com.bingoinnovation.redemptiontester.domain.redemption.RequestOrigin
 import com.bingoinnovation.redemptiontester.domain.redemption.TestScenario
 import com.bingoinnovation.redemptiontester.domain.redemption.TransportFailureKind
 import com.bingoinnovation.redemptiontester.domain.redemption.Verdict
@@ -145,6 +146,34 @@ class PortalRepositoryTest {
         repository.redeem(TestScenario.RETRY_SAME_REQUEST)
 
         assertThat(history.unconfirmedCount.first()).isEqualTo(0)
+    }
+
+    @Test
+    fun followUpWithAnotherCallerOrServer_isNotSentOrSaved() = runTest {
+        val staging = "https://staging.bingoinnovation.com"
+        val repository = repository()
+
+        val otherServer = repository.redeem(
+            TestData.ticket, TestData.TABLET_ID, TestData.REQUEST_ID, TestScenario.RETRY_SAME_REQUEST,
+            origin = RequestOrigin(TestData.CALLER_ID, "https://other.example"),
+        )
+        val otherCaller = repository.redeem(
+            TestData.ticket, TestData.TABLET_ID, TestData.REQUEST_ID, TestScenario.RETRY_SAME_REQUEST,
+            origin = RequestOrigin("999-0000000", staging),
+        )
+
+        assertThat(otherServer).isEqualTo(PortalRepository.RedeemResult.OriginChanged)
+        assertThat(otherCaller).isEqualTo(PortalRepository.RedeemResult.OriginChanged)
+        assertThat(gateway.redeemRequests).isEmpty()
+        assertThat(history.attempts.first()).isEmpty()
+
+        gateway.enqueue(TestData.success(recovered = true))
+        val sameOrigin = repository.redeem(
+            TestData.ticket, TestData.TABLET_ID, TestData.REQUEST_ID, TestScenario.RETRY_SAME_REQUEST,
+            origin = RequestOrigin(TestData.CALLER_ID, staging),
+            attemptId = "chosen-id",
+        )
+        assertThat((sameOrigin as PortalRepository.RedeemResult.Completed).attempt.id).isEqualTo("chosen-id")
     }
 
     @Test

@@ -15,6 +15,8 @@ import java.net.UnknownHostException
 import java.net.UnknownServiceException
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLException
+import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.SSLPeerUnverifiedException
 import kotlin.coroutines.resume
 
 internal sealed interface HttpResult {
@@ -95,7 +97,10 @@ internal fun IOException.toFailureKind(): TransportFailureKind = when (this) {
     // OkHttp reports its call timeout as an InterruptedIOException.
     is InterruptedIOException -> TransportFailureKind.TIMEOUT
     is ConnectException -> TransportFailureKind.CONNECTION_FAILED
-    is SSLException -> TransportFailureKind.TLS_FAILED
+    // Only a failed handshake proves nothing was sent. Android also reports a connection
+    // dropped mid-answer as a plain SSLException, after the request may have arrived.
+    is SSLHandshakeException, is SSLPeerUnverifiedException -> TransportFailureKind.TLS_FAILED
+    is SSLException -> TransportFailureKind.NETWORK_ERROR
     // OkHttp throws this when the network security config forbids plain HTTP.
     is UnknownServiceException -> TransportFailureKind.CLEARTEXT_BLOCKED
     else -> TransportFailureKind.NETWORK_ERROR

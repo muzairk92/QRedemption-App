@@ -77,6 +77,8 @@ class ScenarioEvaluatorTest {
             TestData.rejected("rate_limited", 429, retryable = true),
             TestData.rejected("write_outcome_unknown", 503, retryable = true),
             RedemptionOutcome.UnexpectedResponse(502, UnexpectedReason.NOT_JSON, "<html>"),
+            // A proxy's own rate-limit page, not the contract's JSON error.
+            RedemptionOutcome.UnexpectedResponse(429, UnexpectedReason.NOT_JSON, "<html>"),
             RedemptionOutcome.TransportFailure(TransportFailureKind.TIMEOUT),
             RedemptionOutcome.TransportFailure(TransportFailureKind.HOST_NOT_FOUND),
         )
@@ -96,6 +98,19 @@ class ScenarioEvaluatorTest {
         assertThat(RedemptionOutcome.TransportFailure(TransportFailureKind.TIMEOUT).needsRetryWithSameRequest).isTrue()
         assertThat(RedemptionOutcome.TransportFailure(TransportFailureKind.HOST_NOT_FOUND).needsRetryWithSameRequest)
             .isFalse()
+        assertThat(RedemptionOutcome.UnexpectedResponse(429, UnexpectedReason.NOT_JSON, "").needsRetryWithSameRequest)
+            .isTrue()
+        assertThat(RedemptionOutcome.UnexpectedResponse(503, UnexpectedReason.NOT_JSON, "").needsRetryWithSameRequest)
+            .isTrue()
+        assertThat(RedemptionOutcome.UnexpectedResponse(404, UnexpectedReason.NOT_JSON, "").needsRetryWithSameRequest)
+            .isFalse()
+    }
+
+    @Test
+    fun unexpectedClientErrorPage_isJudged() {
+        val notFound = RedemptionOutcome.UnexpectedResponse(404, UnexpectedReason.NOT_JSON, "<html>")
+
+        assertThat(evaluate(TestScenario.FIRST_REDEMPTION, notFound)).isEqualTo(Verdict.NOT_AS_EXPECTED)
     }
 
     @Test

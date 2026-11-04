@@ -5,6 +5,7 @@ import com.bingoinnovation.redemptiontester.domain.caller.CallerCredentials
 import com.bingoinnovation.redemptiontester.domain.redemption.Redemption
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionAttempt
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionOutcome
+import com.bingoinnovation.redemptiontester.domain.redemption.TestScenario
 import com.bingoinnovation.redemptiontester.domain.redemption.needsRetryWithSameRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -77,6 +78,23 @@ class HistoryRepository(private val store: DataStore<Vault>) {
             .filter { it.requestId == requestId && it.tabletId == tabletId }
             .sortedBy { it.startedAtMillis }
             .firstNotNullOfOrNull { (it.outcome as? RedemptionOutcome.Success)?.redemption }
+
+    /**
+     * The attempt that sent the request [attempt] belongs to. For a probe that is the
+     * request it probed, if it is still in the history:
+     * - another tablet, same request: the first attempt that sent that request ID;
+     * - new request, same ticket: the latest request sent for the ticket before the probe.
+     */
+    suspend fun requestUnderTest(attempt: RedemptionAttempt): RedemptionAttempt? {
+        if (!attempt.scenario.isProbe) return attempt
+        val requests = all().filter { it.ticketQr == attempt.ticketQr && !it.scenario.isProbe }
+        return when (attempt.scenario) {
+            TestScenario.OTHER_TABLET_SAME_REQUEST ->
+                requests.filter { it.requestId == attempt.requestId }.minByOrNull { it.startedAtMillis }
+            else ->
+                requests.filter { it.startedAtMillis <= attempt.startedAtMillis }.maxByOrNull { it.startedAtMillis }
+        }
+    }
 
     suspend fun wasTicketRedeemed(ticketQr: String): Boolean =
         all().any { it.ticketQr == ticketQr && it.outcome is RedemptionOutcome.Success }

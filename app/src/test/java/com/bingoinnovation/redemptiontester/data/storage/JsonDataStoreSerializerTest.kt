@@ -1,6 +1,7 @@
 package com.bingoinnovation.redemptiontester.data.storage
 
 import androidx.datastore.core.CorruptionException
+import com.bingoinnovation.redemptiontester.data.security.DataCipher
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionAttempt
 import com.bingoinnovation.redemptiontester.domain.redemption.TestScenario
 import com.bingoinnovation.redemptiontester.domain.redemption.Verdict
@@ -12,6 +13,10 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.security.GeneralSecurityException
+import java.security.KeyStoreException
+import java.security.ProviderException
 
 class JsonDataStoreSerializerTest {
 
@@ -84,6 +89,30 @@ class JsonDataStoreSerializerTest {
     }
 
     @Test
+    fun encryptionFailureWhileSaving_isAStorageError() {
+        listOf(GeneralSecurityException("Key invalidated"), ProviderException("Keystore operation failed"))
+            .forEach { failure ->
+                val serializer = JsonDataStoreSerializer(Vault.serializer(), Vault(), FailingCipher(failure))
+                assertThrows(IOException::class.java) {
+                    kotlinx.coroutines.runBlocking { serializer.writeTo(vault, ByteArrayOutputStream()) }
+                }
+            }
+    }
+
+    @Test
+    fun keyStoreUnavailableWhileReading_isAStorageError_notCorruption() {
+        // Corruption would wipe the vault, losing request IDs that must be retried.
+        listOf(KeyStoreException("Keystore not ready"), ProviderException("Keystore operation failed"))
+            .forEach { failure ->
+                val serializer = JsonDataStoreSerializer(Vault.serializer(), Vault(), FailingCipher(failure))
+                val thrown = assertThrows(IOException::class.java) {
+                    kotlinx.coroutines.runBlocking { serializer.readFrom(ByteArrayInputStream(byteArrayOf(1, 2, 3))) }
+                }
+                assertThat(thrown).isNotInstanceOf(CorruptionException::class.java)
+            }
+    }
+
+    @Test
     fun settings_ignoreUnknownFieldsFromNewerVersions() = runTest {
         val settingsSerializer = JsonDataStoreSerializer(AppSettings.serializer(), AppSettings())
         val stored = """{"server":{"preset":"CUSTOM","customBaseUrl":"https://p.example"},"tabletId":"t1","future":1}"""
@@ -92,5 +121,12 @@ class JsonDataStoreSerializerTest {
 
         assertThat(restored.tabletId).isEqualTo("t1")
         assertThat(restored.server.baseUrl).isEqualTo("https://p.example")
+    }
+
+    /** Fails every operation with [failure], as a broken or busy Android Keystore can. */
+    private class FailingCipher(private val failure: Exception) : DataCipher {
+        override fun encrypt(plain: ByteArray): ByteArray = throw failure
+
+        override fun decrypt(encrypted: ByteArray): ByteArray = throw failure
     }
 }

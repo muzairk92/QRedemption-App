@@ -111,7 +111,14 @@ sealed interface RedemptionOutcome {
         val reason: UnexpectedReason,
         /** The start of the body with the API key and ticket removed. */
         val bodyPreview: String,
-    ) : RedemptionOutcome
+    ) : RedemptionOutcome {
+        /**
+         * True when the request may have been accepted: a 429 or 5xx, for example a proxy's
+         * HTML error page. The contract treats 429 and 503 as unknown outcomes.
+         */
+        val outcomeUnknown: Boolean
+            get() = httpStatus == HTTP_TOO_MANY_REQUESTS || httpStatus >= HTTP_FIRST_SERVER_ERROR
+    }
 
     /** No HTTP answer at all. */
     @Serializable
@@ -130,9 +137,12 @@ val RedemptionOutcome?.needsRetryWithSameRequest: Boolean
         null -> true
         is RedemptionOutcome.Success -> false
         is RedemptionOutcome.Rejected -> retryable
-        is RedemptionOutcome.UnexpectedResponse -> httpStatus >= 500
+        is RedemptionOutcome.UnexpectedResponse -> outcomeUnknown
         is RedemptionOutcome.TransportFailure -> kind.outcomeUnknown
     }
+
+private const val HTTP_TOO_MANY_REQUESTS = 429
+private const val HTTP_FIRST_SERVER_ERROR = 500
 
 @Serializable
 data class ContractCheck(

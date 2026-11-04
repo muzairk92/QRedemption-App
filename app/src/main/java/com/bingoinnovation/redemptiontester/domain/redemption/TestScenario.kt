@@ -2,20 +2,26 @@ package com.bingoinnovation.redemptiontester.domain.redemption
 
 import kotlinx.serialization.Serializable
 
-/** The redemption behaviours this app can exercise, each with a known expected answer. */
+/**
+ * The redemption behaviours this app can exercise, each with a known expected answer.
+ *
+ * [isProbe] is true for scenarios that do not send the request under test itself, but a
+ * deliberately different one (a new request ID, or another tablet) to check how the
+ * server treats it.
+ */
 @Serializable
-enum class TestScenario {
+enum class TestScenario(val isProbe: Boolean) {
     /** A new scan with a new `request_id`. Expected: accepted, `recovered: false`. */
-    FIRST_REDEMPTION,
+    FIRST_REDEMPTION(isProbe = false),
 
     /** The same `request_id` and tablet again. Expected: the saved result, `recovered: true`. */
-    RETRY_SAME_REQUEST,
+    RETRY_SAME_REQUEST(isProbe = false),
 
     /** The same ticket with a new `request_id`. Expected: `409 already_redeemed`. */
-    NEW_REQUEST_SAME_TICKET,
+    NEW_REQUEST_SAME_TICKET(isProbe = true),
 
     /** The same `request_id` from a different tablet. Expected: `409 request_id_conflict`. */
-    OTHER_TABLET_SAME_REQUEST,
+    OTHER_TABLET_SAME_REQUEST(isProbe = true),
 }
 
 @Serializable
@@ -73,7 +79,7 @@ object ScenarioEvaluator {
     private fun RedemptionOutcome.isTemporary(): Boolean = when (this) {
         is RedemptionOutcome.Success -> false
         is RedemptionOutcome.Rejected -> retryable
-        is RedemptionOutcome.UnexpectedResponse -> httpStatus >= 500
+        is RedemptionOutcome.UnexpectedResponse -> outcomeUnknown
         is RedemptionOutcome.TransportFailure -> true
     }
 

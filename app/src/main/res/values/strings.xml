@@ -124,6 +124,10 @@
     <string name="ticket_invalid">This isn’t a valid ticket code.</string>
     <string name="ticket_code_masked">BC1.%1$s.%2$s</string>
     <string name="ticket_unconfirmed_title">This request was never confirmed</string>
+    <string name="ticket_origin_changed_title">The Caller or server has changed</string>
+    <string name="ticket_origin_changed_body">This request was sent to %1$s as Caller %2$s. To retry or test it, switch back to them in Settings, or start over with a new request.</string>
+    <string name="problem_origin_changed">Not sent: the Caller or server changed since this request was first sent.</string>
+    <string name="action_resend">Resend</string>
     <string name="ticket_unconfirmed_body">The app stopped before the server answered. Retry it with the same request ID; the server returns the saved result if it was accepted.</string>
     <string name="tablet_id_help">Sent exactly as typed. Case and spaces count.</string>
     <string name="tablet_id_locked">Locked: this request was sent from this tablet ID.</string>

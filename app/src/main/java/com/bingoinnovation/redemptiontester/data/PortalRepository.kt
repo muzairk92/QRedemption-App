@@ -12,6 +12,7 @@ import com.bingoinnovation.redemptiontester.domain.redemption.Redemption
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionAttempt
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionOutcome
 import com.bingoinnovation.redemptiontester.domain.redemption.RedemptionRequest
+import com.bingoinnovation.redemptiontester.domain.redemption.RequestOrigin
 import com.bingoinnovation.redemptiontester.domain.redemption.ScenarioEvaluator
 import com.bingoinnovation.redemptiontester.domain.redemption.TestScenario
 import com.bingoinnovation.redemptiontester.domain.ticket.TicketQr
@@ -37,6 +38,9 @@ class PortalRepository(
         data object NoCaller : RedeemResult
 
         data object NoServer : RedeemResult
+
+        /** The saved Caller or server differs from [RequestOrigin]; nothing was saved or sent. */
+        data object OriginChanged : RedeemResult
     }
 
     sealed interface VerifyResult {
@@ -45,12 +49,26 @@ class PortalRepository(
         data object NoServer : VerifyResult
     }
 
+    /** A new local history ID, for callers that need to know an attempt's ID before it is sent. */
+    fun nextAttemptId(): String = newAttemptId()
+
+    /**
+     * Saves, sends and records one attempt.
+     *
+     * @param origin for a retry or follow-up test, the Caller and server the request under
+     *   test was first sent with. When the saved ones differ, nothing is sent and the
+     *   result is [RedeemResult.OriginChanged]. Null for a first redemption.
+     */
     suspend fun redeem(
         ticket: TicketQr,
         tabletId: String,
         requestId: String,
         scenario: TestScenario,
-    ): RedeemResult = externalScope.async { performRedeem(ticket, tabletId, requestId, scenario) }.await()
+        origin: RequestOrigin? = null,
+        attemptId: String = newAttemptId(),
+    ): RedeemResult = externalScope.async {
+        performRedeem(ticket, tabletId, requestId, scenario, origin, attemptId)
+    }.await()
 
     suspend fun verifyCaller(credentials: CallerCredentials): VerifyResult {
         val baseUrl = settings.current().server.baseUrl ?: return VerifyResult.NoServer
@@ -62,16 +80,21 @@ class PortalRepository(
         tabletId: String,
         requestId: String,
         scenario: TestScenario,
+        origin: RequestOrigin?,
+        attemptId: String,
     ): RedeemResult {
         val caller = callers.current() ?: return RedeemResult.NoCaller
         val baseUrl = settings.current().server.baseUrl ?: return RedeemResult.NoServer
+        if (origin != null && origin != RequestOrigin(callerId = caller.callerId, serverBaseUrl = baseUrl)) {
+            return RedeemResult.OriginChanged
+        }
 
         val originalSuccess = history.originalSuccess(requestId, tabletId)
         val ticketRedeemedBefore = history.wasTicketRedeemed(ticket.value)
 
         // Saved before sending: the request ID must survive a crash so it can be retried.
         val started = RedemptionAttempt(
-            id = newAttemptId(),
+            id = attemptId,
             scenario = scenario,
             requestId = requestId,
             ticketQr = ticket.value,

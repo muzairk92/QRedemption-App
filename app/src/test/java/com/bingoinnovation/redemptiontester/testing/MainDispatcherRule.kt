@@ -1,6 +1,7 @@
 package com.bingoinnovation.redemptiontester.testing
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -9,6 +10,7 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 /** Replaces Dispatchers.Main, used by viewModelScope, for the duration of a test. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
     val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
 ) : TestWatcher() {

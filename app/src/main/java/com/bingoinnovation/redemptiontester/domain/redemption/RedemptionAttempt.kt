@@ -28,7 +28,19 @@ data class RedemptionAttempt(
     val isFinished: Boolean
         get() = outcome != null
 
+    val origin: RequestOrigin
+        get() = RequestOrigin(callerId = callerId, serverBaseUrl = serverBaseUrl)
+
     override fun toString(): String =
         "RedemptionAttempt(id=$id, scenario=$scenario, requestId=$requestId, tabletId=$tabletId, " +
             "callerId=$callerId, finished=$isFinished, verdict=$verdict)"
 }
+
+/**
+ * The Caller and Portal a request was first sent with. A retry or follow-up test of that
+ * request is only meaningful when it goes to the same Portal as the same Caller.
+ */
+data class RequestOrigin(
+    val callerId: String,
+    val serverBaseUrl: String,
+)
