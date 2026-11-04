@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Redemption Tester</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_copy_value">Copy %1$s</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_generate">Generate</string>
+    <string name="action_hide_api_key">Hide API key</string>
+    <string name="action_show_api_key">Show API key</string>
+    <string name="action_new_request_id">New request ID</string>
+    <string name="action_open">Open</string>
+    <string name="action_open_history">Open history</string>
+    <string name="action_redeem">Redeem ticket</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_replace_caller">Replace</string>
+    <string name="action_save">Save</string>
+    <string name="action_save_address">Save address</string>
+    <string name="action_scan_next">Scan next</string>
+    <string name="action_send">Send</string>
+    <string name="action_start_over">Start over</string>
+    <string name="action_torch_on">Turn on flashlight</string>
+    <string name="action_torch_off">Turn off flashlight</string>
+
+    <!-- Labels -->
+    <string name="label_address">Address</string>
+    <string name="label_api_key">API key</string>
+    <string name="label_caller_id">Caller ID</string>
+    <string name="label_hall_site_id">Hall site ID</string>
+    <string name="label_http_status">HTTP status</string>
+    <string name="label_other_tablet_id">Other tablet ID</string>
+    <string name="label_package">Package</string>
+    <string name="label_player_tablet_id">Player tablet ID</string>
+    <string name="label_portal_address">Portal address</string>
+    <string name="label_redemption_id">Redemption ID</string>
+    <string name="label_request_id">Request ID</string>
+    <string name="label_server">Server</string>
+    <string name="label_server_message">Server message</string>
+    <string name="label_session">Session</string>
+    <string name="label_session_when">Date and time</string>
+    <string name="label_ticket_code">Ticket code</string>
+    <string name="label_version">Version</string>
+
+    <!-- Sections -->
+    <string name="section_about">About</string>
+    <string name="section_caller">Caller</string>
+    <string name="section_request">Request</string>
+    <string name="section_server">Portal server</string>
+    <string name="section_tablet">This phone as a tablet</string>
+    <string name="section_ticket">Ticket</string>
+
+    <!-- Shared values -->
+    <string name="caller_not_set">No Caller set</string>
+    <string name="server_not_set">No server set</string>
+    <string name="error_storage">Couldn’t save on this phone. Try again.</string>
+    <string name="scanner_not_ready">Getting the scanner ready. This needs Google Play services and can take a moment the first time.</string>
+    <string name="http_status">HTTP %1$d</string>
+    <string name="retry_after_seconds">The server asked to wait %1$d seconds before retrying.</string>
+    <string name="retryable_yes">Retry with same ID</string>
+    <string name="retryable_no">Final answer</string>
+
+    <!-- Camera permission -->
+    <string name="camera_permission_title">Allow the camera to scan QR codes</string>
+    <string name="camera_permission_body">The camera is only used to read QR codes. Nothing is recorded or uploaded.</string>
+    <string name="camera_permission_blocked_body">Camera access is turned off for this app. Turn it on in the app’s settings, or type the code instead.</string>
+    <string name="camera_permission_allow">Allow camera</string>
+    <string name="camera_permission_open_settings">Open settings</string>
+
+    <!-- Caller setup -->
+    <string name="setup_title">Set up Caller</string>
+    <string name="setup_scan_heading">Scan the Caller label</string>
+    <string name="setup_scan_body">Use the QR marked “OEM / Pre-Authorized — Internal Only” on the Portal’s Product ID sheet. It holds the Caller ID and API key.</string>
+    <string name="setup_enter_manually">Enter details instead</string>
+    <string name="setup_manual_heading">Enter Caller details</string>
+    <string name="setup_manual_body">The Caller must be active and assigned to the Hall whose tickets you test.</string>
+    <string name="setup_caller_id_hint">For example 201-4827193</string>
+    <string name="setup_caller_id_error">Use 1–20 letters, digits or dashes.</string>
+    <string name="setup_api_key_hint">64 characters, 0–9 and a–f</string>
+    <string name="setup_api_key_error">An API key is exactly 64 characters, 0–9 and a–f.</string>
+    <string name="setup_scan_instead">Scan the label instead</string>
+    <string name="setup_review_heading">Check the Caller</string>
+    <string name="setup_review_body">The API key is stored encrypted on this phone and is never shown in full.</string>
+    <string name="setup_save">Save Caller</string>
+    <string name="setup_scan_different">Scan a different label</string>
+    <string name="setup_feedback_ticket">That’s a customer ticket. Scan the Caller label (the OEM / Pre-Authorized QR).</string>
+    <string name="setup_feedback_not_caller">That QR isn’t a Caller label.</string>
+    <string name="setup_feedback_invalid_caller_id">The label’s Caller ID isn’t valid.</string>
+    <string name="setup_feedback_invalid_api_key">The label’s API key isn’t valid.</string>
+
+    <!-- Caller check (verify-credentials) -->
+    <string name="verify_action">Check with server</string>
+    <string name="verify_checking">Checking…</string>
+    <string name="verify_no_server">Choose a Portal server in Settings first.</string>
+    <string name="verify_valid_title">Caller ID and API key are valid</string>
+    <string name="verify_valid_body">This confirms an active Caller. Redeeming also needs the Caller to be assigned to a Hall.</string>
+    <string name="verify_rejected_title">The server didn’t accept these details</string>
+    <string name="verify_rejected_body">Check the Caller ID and API key, and that the Caller is active in the Portal.</string>
+    <string name="verify_not_available_title">This server can’t check Caller details</string>
+    <string name="verify_not_available_body">The Portal has no verify-credentials endpoint. You can still save the Caller and redeem.</string>
+    <string name="verify_rate_limited_title">Too many checks. Wait a minute and try again.</string>
+    <string name="verify_unexpected_title">Unexpected answer (HTTP %1$d)</string>
+
+    <!-- Scanner -->
+    <string name="scan_title">Scan ticket</string>
+    <string name="scan_hint">Point the camera at a ticket QR</string>
+    <string name="scan_type_code">Type a code</string>
+    <string name="scan_message_not_ticket">That QR isn’t a Bingo ticket.</string>
+    <string name="scan_message_caller_label">That’s a Caller label. To change the Caller, use Settings.</string>
+    <plurals name="scan_unconfirmed_title">
+        <item quantity="one">%1$d redemption not confirmed</item>
+        <item quantity="other">%1$d redemptions not confirmed</item>
+    </plurals>
+    <string name="scan_unconfirmed_body">The server may have accepted it. Retry it with the same request ID from the history.</string>
+    <string name="manual_ticket_title">Type a ticket code</string>
+    <string name="manual_ticket_body">Paste or type the whole code. It starts with BC1. and ends with 64 letters and digits.</string>
+    <string name="manual_ticket_label">Ticket code</string>
+    <string name="manual_ticket_invalid">That isn’t a valid BC1 ticket code.</string>
+
+    <!-- Ticket -->
+    <string name="ticket_title">Ticket</string>
+    <string name="ticket_invalid">This isn’t a valid ticket code.</string>
+    <string name="ticket_code_masked">BC1.%1$s.%2$s</string>
+    <string name="ticket_unconfirmed_title">This request was never confirmed</string>
+    <string name="ticket_unconfirmed_body">The app stopped before the server answered. Retry it with the same request ID; the server returns the saved result if it was accepted.</string>
+    <string name="tablet_id_help">Sent exactly as typed. Case and spaces count.</string>
+    <string name="tablet_id_locked">Locked: this request was sent from this tablet ID.</string>
+    <string name="tablet_id_empty">Enter a tablet ID.</string>
+    <string name="tablet_id_too_long">Too long: %1$d bytes. The limit is %2$d.</string>
+    <string name="tablet_id_control">Control characters such as line breaks aren’t allowed.</string>
+    <string name="tablet_id_invalid_text">This text can’t be sent as UTF-8.</string>
+    <string name="request_id_help">A retry must reuse this ID. A new scan of a ticket gets a new one.</string>
+    <string name="problem_no_caller">No Caller is set. Add one in Settings.</string>
+    <string name="problem_no_server">No Portal server is set. Choose one in Settings.</string>
+    <string name="running_title">Sending: %1$s</string>
+    <string name="next_tests_title">Next test</string>
+
+    <!-- Other-tablet dialog -->
+    <string name="other_tablet_title">Same request, another tablet</string>
+    <string name="other_tablet_body">Sends this request ID again from a different tablet ID. The server must refuse it without revealing the original result.</string>
+    <string name="other_tablet_same">Use a different tablet ID from the one that sent the request.</string>
+
+    <!-- Scenarios -->
+    <string name="scenario_first_title">First redemption</string>
+    <string name="scenario_first_expected">accepted, not recovered</string>
+    <string name="scenario_retry_title">Retry same request</string>
+    <string name="scenario_retry_expected">the saved result, recovered, nothing added</string>
+    <string name="scenario_new_request_title">Rescan as a new request</string>
+    <string name="scenario_new_request_expected">409 already redeemed</string>
+    <string name="scenario_other_tablet_title">Same request, another tablet</string>
+    <string name="scenario_other_tablet_expected">409 request ID conflict</string>
+
+    <!-- Verdicts -->
+    <string name="verdict_as_expected">As expected</string>
+    <string name="verdict_not_as_expected">Not as expected</string>
+    <string name="verdict_not_confirmed">Not confirmed</string>
+    <string name="verdict_title">%1$s: %2$s</string>
+    <string name="verdict_expected">Expected: %1$s</string>
+
+    <!-- Result -->
+    <string name="result_redeemed_title">Redeemed</string>
+    <string name="result_redeemed_body">The ticket is now redeemed onto this tablet ID. “Redeemed” doesn’t mean cards were loaded.</string>
+    <string name="result_recovered_title">Recovered</string>
+    <string name="result_recovered_body">The server recognised this request and returned its saved result. Nothing was added. A tablet must not load the same redemption ID twice.</string>
+    <string name="result_games_title">Digital faces by Game Type</string>
+    <string name="result_games_note">Cards are loaded by Portal Game Type ID. Names are for display only and can change if a Game Type is renamed. Paper is never included.</string>
+    <string name="result_total_faces">Total</string>
+    <string name="result_checks_title">Contract checks</string>
+    <string name="result_checks_summary">%1$d of %2$d checks passed</string>
+    <string name="result_sent_at">Sent %1$s</string>
+    <string name="package_with_id">%1$s (#%2$d)</string>
+    <string name="session_date_no_time">%1$s</string>
+    <string name="session_date_time">%1$s · %2$s</string>
+    <string name="session_date_time_zone">%1$s · %2$s (%3$s)</string>
+    <string name="game_type_unnamed">Game Type #%1$d</string>
+    <string name="game_type_portal_id">Portal Game Type ID %1$d</string>
+    <plurals name="faces_count">
+        <item quantity="one">%1$d face</item>
+        <item quantity="other">%1$d faces</item>
+    </plurals>
+    <string name="status_mismatch">The server sent HTTP %1$d, but the contract says %2$d for this code.</string>
+
+    <!-- Contract checks -->
+    <string name="check_passed">Passed</string>
+    <string name="check_failed">Failed</string>
+    <string name="check_api_version">API version is 1</string>
+    <string name="check_request_id_echoed">Request ID sent back unchanged</string>
+    <string name="check_tablet_id_echoed">Tablet ID sent back unchanged</string>
+    <string name="check_redemption_id_format">Redemption ID is a lowercase UUID v4</string>
+    <string name="check_state_redeemed">State is “redeemed” and recovered is true or false</string>
+    <string name="check_session_valid">Session details are complete and valid</string>
+    <string name="check_package_valid">Package details are complete and valid</string>
+    <string name="check_game_types_valid">Game Types are unique with positive faces</string>
+    <string name="check_no_unexpected_fields">No missing or extra fields</string>
+    <string name="check_recovery_matches_original">Recovered result matches the original</string>
+
+    <!-- Server errors (Portal relay error codes) -->
+    <string name="error_invalid_request_title">Invalid request</string>
+    <string name="error_invalid_request_guidance">The Portal refused the request format. Check that the server address points to a Portal with the redemption relay.</string>
+    <string name="error_malformed_qr_title">Not a valid ticket</string>
+    <string name="error_malformed_qr_guidance">The server didn’t accept the ticket code format.</string>
+    <string name="error_authentication_required_title">Caller not accepted</string>
+    <string name="error_authentication_required_guidance">The Portal didn’t accept the Caller ID and API key. Check the Caller in Settings, and that it is active in the Portal.</string>
+    <string name="error_caller_not_authorized_title">Caller not authorized</string>
+    <string name="error_caller_not_authorized_guidance">The Caller isn’t active, or isn’t assigned to a Hall.</string>
+    <string name="error_wrong_hall_title">Ticket from a different Hall</string>
+    <string name="error_wrong_hall_guidance">This ticket was sold by another Hall, not the Caller’s Hall. Nothing was redeemed in either Hall.</string>
+    <string name="error_ticket_not_found_title">Ticket not found</string>
+    <string name="error_ticket_not_found_guidance">No active ticket matches this code in the Caller’s Hall.</string>
+    <string name="error_already_redeemed_title">Already redeemed</string>
+    <string name="error_already_redeemed_guidance">This ticket was already accepted. A new scan with a new request ID is always refused, even on the same tablet. Only the original request ID gets the saved result.</string>
+    <string name="error_request_id_conflict_title">Request ID conflict</string>
+    <string name="error_request_id_conflict_guidance">This request ID was already used for a different ticket or tablet. The original result isn’t revealed.</string>
+    <string name="error_wrong_session_title">Different dated Session</string>
+    <string name="error_wrong_session_guidance">The ticket belongs to a different dated Session.</string>
+    <string name="error_electronic_limit_exceeded_title">Over this tablet’s limit</string>
+    <string name="error_electronic_limit_exceeded_guidance">This ticket would take this tablet over the electronic-card limit for at least one Game Type in this Session. Nothing was added. Another tablet has its own allowance.</string>
+    <string name="error_ticket_voided_title">Ticket no longer valid</string>
+    <string name="error_ticket_voided_guidance">The ticket was refunded or cancelled. Earlier accepted history stays, but the ticket can’t be used.</string>
+    <string name="error_saved_purchase_invalid_title">Purchase needs staff review</string>
+    <string name="error_saved_purchase_invalid_guidance">The saved purchase details for this ticket are invalid. Staff need to review the order.</string>
+    <string name="error_rate_limited_title">Too many requests</string>
+    <string name="error_rate_limited_guidance">A Caller can send 15 requests a minute, shared with its other traffic. Wait, then retry with the same request ID.</string>
+    <string name="error_mapping_unavailable_title">Game Type mapping unavailable</string>
+    <string name="error_mapping_unavailable_guidance">The ticket’s Game Type mapping isn’t available. Retry with the same request ID once it is restored.</string>
+    <string name="error_verification_unavailable_title">Can’t verify right now</string>
+    <string name="error_verification_unavailable_guidance">The server couldn’t verify the ticket. Retry with the same request ID.</string>
+    <string name="error_write_outcome_unknown_title">Result not confirmed</string>
+    <string name="error_write_outcome_unknown_guidance">The server couldn’t confirm whether the redemption was saved. Retry with the same request ID, never a new one, to find out.</string>
+    <string name="error_unknown_code_title">Unknown error code</string>
+    <string name="error_unknown_code_guidance">The server sent an error code that isn’t in the contract.</string>
+
+    <!-- No HTTP answer -->
+    <string name="transport_timeout_title">No answer in time</string>
+    <string name="transport_network_error_title">Connection lost</string>
+    <string name="transport_connection_failed_title">Couldn’t connect to the server</string>
+    <string name="transport_host_not_found_title">Server address not found</string>
+    <string name="transport_tls_failed_title">Secure connection failed</string>
+    <string name="transport_cleartext_blocked_title">Plain HTTP is blocked in this build</string>
+    <string name="transport_invalid_address_title">Invalid server address</string>
+    <string name="transport_outcome_unknown_guidance">The server may have accepted the ticket. Retry with the same request ID to find out. A new ID would be refused as already redeemed.</string>
+    <string name="transport_not_sent_guidance">The request didn’t reach the server, so nothing changed. Check the connection and the server address, then try again.</string>
+
+    <!-- Answers that don't follow the contract -->
+    <string name="unexpected_title">Unexpected answer</string>
+    <string name="unexpected_not_json">The server didn’t answer with JSON, for example an HTML error page from a proxy or web server.</string>
+    <string name="unexpected_success_shape">The server answered 200, but the body doesn’t match the redemption contract.</string>
+    <string name="unexpected_error_shape">The error body doesn’t match the contract’s error format.</string>
+    <string name="unexpected_redirect">The server redirected the request. Redirects aren’t followed, so use the final address in Settings.</string>
+    <string name="unexpected_body_too_large">The answer was larger than the contract allows.</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_clear_title">Clear history?</string>
+    <string name="history_clear_body">This deletes every saved attempt on this phone, including unconfirmed ones you might need to retry. Nothing changes on the server.</string>
+    <string name="history_empty_title">No redemptions yet</string>
+    <string name="history_empty_body">Every request you send is listed here, so you can open it and retry it with the same request ID.</string>
+    <string name="history_unconfirmed">Not confirmed</string>
+    <string name="history_redeemed">Redeemed · %1$s</string>
+    <string name="history_recovered">Recovered · %1$s</string>
+    <string name="history_unexpected">Unexpected answer (HTTP %1$d)</string>
+    <string name="history_row_details">Ticket %1$s · Tablet %2$s · %3$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="server_staging">Staging</string>
+    <string name="server_custom">Custom</string>
+    <string name="server_active">Requests go to %1$s</string>
+    <string name="server_active_none">No server is active. Save a custom address or choose Staging.</string>
+    <string name="custom_url_placeholder">https://portal.example.com</string>
+    <string name="custom_url_hint">The Portal’s address, starting with https://</string>
+    <string name="custom_url_hint_debug">Starts with https://, or http:// for a local Portal in this debug build</string>
+    <string name="url_error_empty">Enter an address.</string>
+    <string name="url_error_malformed">That isn’t a valid address.</string>
+    <string name="url_error_scheme">Start the address with https://</string>
+    <string name="url_error_cleartext">Plain http:// is only allowed in debug builds. Use https://.</string>
+    <string name="url_error_credentials">Remove the user name or password from the address.</string>
+    <string name="url_error_query">Remove the ? or # part from the address.</string>
+    <string name="tablet_section_note">Each physical tablet needs its own ID within a Hall. The electronic-card limit is counted per tablet, per dated Session and Game Type.</string>
+    <string name="remove_caller_title">Remove Caller?</string>
+    <string name="remove_caller_body">The Caller ID and API key are deleted from this phone. You’ll need to scan the Caller label again. The history stays.</string>
+    <string name="about_body">Tests the Bingo Portal Caller redemption relay (POST /api/caller/redemptions, contract version 1). It sends exactly what a Caller sends for a player tablet and shows what came back. It never loads cards or games.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#0B57D0</color>
+    <!-- The splash icon is white, so the splash background is the brand blue. -->
+    <color name="splash_background">#0B57D0</color>
+</resources>

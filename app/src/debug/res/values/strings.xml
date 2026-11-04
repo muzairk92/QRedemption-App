@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lets the debug and release builds sit side by side on one phone. -->
+    <string name="app_name">Redemption Tester (debug)</string>
+</resources>
